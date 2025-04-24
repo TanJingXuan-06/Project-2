@@ -105,51 +105,33 @@ int main(void)
 
 
   while (1) {
-      memset(buffer, 0, sizeof(buffer)); // Clear buffer
+      memset(buffer, 0, sizeof(buffer));
+      HAL_UART_Receive(&huart2, (uint8_t*)buffer, 3, HAL_MAX_DELAY);
 
-      // Wait for exactly 3 bytes with a timeout
-      if (HAL_UART_Receive(&huart2, (uint8_t*)buffer, 3, HAL_MAX_DELAY) == HAL_OK) {
+      if (strncmp(buffer, "RUN", 3) == 0) {
+          HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET); // Turn on LED
 
-        while(1){
-          if (strncmp(buffer, "RUN", 3) == 0) {
-  
-        	      /* USER CODE END WHILE */
+          while (1) {
+              // Read ADC value
+              HAL_ADC_Start(&hadc1);
+              HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+              raw = HAL_ADC_GetValue(&hadc1);
+              sprintf(msg, "ADC Value = %hu\r\n", raw);
+              HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+              HAL_Delay(5); // Send every 50 ms
 
-        	      /* USER CODE BEGIN 3 */
-        	  	  // Capture samples of ADC Raw data and transmit through Serial Communications using UART protocol
-                    //Set LD3 LED to High - indicating start of capture
-                    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-
-                    // Getting ADC value
-                    HAL_ADC_Start(&hadc1); 								// Start the ADC capture
-                    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY); 	// Begin Reading A0 value
-                    raw = HAL_ADC_GetValue(&hadc1);						// Store ADC raw data
-
-                    // Convert to string and print
-                    sprintf(msg, "ADC Value = %hu\r\n", raw);			// Create a message to send over UART
-
-                    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY); // Send message over UART
-
-                    // Pretend we have to do something else for a while
-                    HAL_Delay(500);			// Capture every second
-
-                    HAL_UART_Receive(&huart2, (uint8_t*)buffer, 3, HAL_MAX_DELAY) == HAL_OK
-        	  	
-            else if (strncmp(buffer, "STP", 3) == 0)
-        	  	  {
-        	  		  HAL_ADC_Stop(&hadc1);					           // Stop the ADC Capture after 20 cycles
-        	  		  // reset
-        	  		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-        	  		  break ;
-        	  	  }
-
-        	  	  
-        	 
+              // Check for "STP" without blocking
+              uint8_t tempBuf[4] = {0};
+              if (HAL_UART_Receive(&huart2, tempBuf, 3, 10) == HAL_OK) {
+                  if (strncmp((char*)tempBuf, "STP", 3) == 0) {
+                      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // Turn off LED
+                      break;
+                  }
+              }
           }
-        }
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); 		// Set LD3 LED to indicate ADC has stopped acquisition
       }
   }
+
 
 
   /* USER CODE END 3 */
