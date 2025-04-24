@@ -54,6 +54,8 @@ def highest_amp(list, threshold):
     
     for idx, spike in enumerate(spike_segments):
         print(f"Spike {idx+1}: values = {spike}, max = {max_spikes[idx]}")
+        
+    return max(max_spikes)
     
 
     
@@ -85,5 +87,5 @@ adc_values = np.array([
 threshold = 0
 
 print(get_avgamp(adc_values))
-highest_amp(adc_values, 50)
+print(highest_amp(adc_values, 50))
 visualize_data(adc_values)

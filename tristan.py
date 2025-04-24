@@ -5,11 +5,13 @@ import time
 import matplotlib.pyplot as plt
 import csv 
 import numpy as np 
+import random 
 
 # define constants 
 NOISE_LEVEL = 10        # to define the noise level 
 TIME = 10               # time to gather 1 data 
-SAMPLING_RATE = 584/10  # Number of samples / Time Period 
+SAMPLE_RATE = 584
+SAMPLING_RATE = SAMPLE_RATE/TIME  # Number of samples / Time Period 
 
 # the target string to determine if STM 32 is connected 
 STM32Name = "STMicroelectronics STLink Virtual COM Port"
@@ -118,20 +120,36 @@ def get_freq(adc_values) :
         else : 
             noise_region += 1 
             
-    # calculate the FFT 
-    n = len(valid_list)
-    fft_result = np.fft.fft(valid_list)
-    frequency = np.fft.fftfreq(n, d=1/SAMPLING_RATE)
-    
-    # Take magnitude and only keep the positive frequencies
-    magnitude = np.abs(fft_result)[:n//2]
-    frequency = frequency[:n//2]
-    dominant_freq = frequency[np.argmax(magnitude)]
-    
-    return dominant_freq
-    
+    data_count = 0
+    peak = None 
+    freq_list = []
+    for idx in range (len(valid_list)-1) : 
+        
+        # if this is true 
+        # means this is a peak 
+        if idx > 0 : 
+            if (valid_list[idx] > valid_list[idx+1]) and (valid_list[idx] > valid_list[idx-1]) : 
+                
+                # if data_count is 0 means this is the first peak 
+                if peak == None : 
+                    peak = valid_list[idx]
+                    data_count = 0 
+                    pass
+                
+                else : 
+                    peak = None 
+                    period = (TIME/SAMPLE_RATE) * data_count
+                    freq = 1/period
+                    freq_list.append(freq)
+                    data_count = 0 
             
+            # if not yet reach peak 
+            else :         
+                data_count += 1 
             
+    return round(max(freq_list),2)
+            
+    
 def main(): 
     print("START MENU")
     user = input("Continue Y/N? ")
@@ -141,4 +159,12 @@ def main():
         
         freq = get_freq(data)
     
-main()
+# main()
+
+def testing() : 
+    adc_values =  [random.randint(0, 4095) for _ in range(584)]
+    # print(adc_values)
+    
+    print(get_freq(adc_values))
+    
+testing()
