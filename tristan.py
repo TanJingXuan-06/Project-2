@@ -8,9 +8,9 @@ import numpy as np
 import random 
 
 # define constants 
-NOISE_LEVEL = 10        # to define the noise level 
-TIME = 10               # time to gather 1 data 
-SAMPLE_RATE = 584
+NOISE_LEVEL = 0        # to define the noise level 
+TIME = 3               # time to gather 1 data 
+SAMPLE_RATE = 319
 SAMPLING_RATE = SAMPLE_RATE/TIME  # Number of samples / Time Period 
 
 # the target string to determine if STM 32 is connected 
@@ -62,7 +62,7 @@ def gather_data() :
         return 
     
     try : 
-        ser = serial.Serial(port =stm32_port.name, baudrate=115200 , timeout=1)    
+        ser = serial.Serial(port =stm32_port.name, baudrate=230400 , timeout=1)    
         # print(f"Stm32 Connected to {stm32_port}") 
         ser.write(b"RUN")       #"Send RUN to STM32"
         print("Writing to STM.....")
@@ -78,9 +78,7 @@ def gather_data() :
             data_received = ser.readline().decode("utf-8").strip()            
             # if STM sent any data 
             if data_received : 
-                
-                
-                
+                                
                 # if the data is Mean Value 
                 if "ADC Value = " in data_received:
                     print(data_received)
@@ -123,7 +121,10 @@ def get_freq(adc_values) :
     data_count = 0
     peak = None 
     freq_list = []
+    print(f"valid list {valid_list}")
     for idx in range (len(valid_list)-1) : 
+        
+        print(idx)
         
         # if this is true 
         # means this is a peak 
@@ -140,6 +141,10 @@ def get_freq(adc_values) :
                     peak = None 
                     period = (TIME/SAMPLE_RATE) * data_count
                     freq = 1/period
+                    
+                    print(idx)        
+                    print(f"THIS IS THE PEAK AT {valid_list[idx]}")     
+                         
                     freq_list.append(freq)
                     data_count = 0 
             
@@ -151,20 +156,22 @@ def get_freq(adc_values) :
             
     
 def main(): 
-    print("START MENU")
-    user = input("Continue Y/N? ")
-    
-    if user == 'y' or user == 'Y' : 
-        data = gather_data 
-        
-        freq = get_freq(data)
-    
-# main()
 
-def testing() : 
-    adc_values =  [random.randint(0, 4095) for _ in range(584)]
-    # print(adc_values)
+    print("Start gathering in", end=" ", flush=True)
+    for i in range(3, 0, -1):
+        print(f"\rStart gathering in {i}", end="", flush=True)
+        time.sleep(1)
+    data = gather_data()
+        
+    print(len(data))
+    # print(get_freq(data))
     
-    print(get_freq(adc_values))
+main()
+
+# def testing() : 
+#     adc_values =  [random.randint(0, 4095) for _ in range(584)]
+#     # print(adc_values)
     
-testing()
+#     print(get_freq(adc_values))
+    
+# testing()

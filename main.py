@@ -7,13 +7,13 @@ import csv
 import numpy as np 
 
 # SAMPLES PARAMETERS
-NOISE_LEVEL = 10        # to define the noise level 
-TIME = 10               # time to gather 1 data 
-SAMPLE_RATE = 584
+NOISE_LEVEL = 25        # to define the noise level 
+TIME = 3               # time to gather 1 data 
+SAMPLE_RATE = 5062
 SAMPLING_RATE = SAMPLE_RATE/TIME  # Number of samples / Time Period 
 
 # FREQUENCY THRESHOLD
-FREQ_THRESHOLD = 100 
+FREQ_THRESHOLD = 150 
 
 # ERASER PARAMETERS  
 # HEIGHT LENGTH   
@@ -24,10 +24,10 @@ ERASER_H_L_PARAM_10_30 = 1
 
 # COIN PARAMETERS 
 # HEIGHT LENGTH 
-COIN_H_L_PARAM_30_10 = 1 
-COIN_H_L_PARAM_30_30 = 1 
-COIN_H_L_PARAM_10_10 = 1 
-COIN_H_L_PARAM_10_30 = 1 
+COIN_H_L_PARAM_10_30 = 114
+COIN_H_L_PARAM_30_30 = 127
+COIN_H_L_PARAM_10_10 = 140
+COIN_H_L_PARAM_30_10 = 160
 
 
 # the target string to determine if STM 32 is connected 
@@ -79,7 +79,7 @@ def gather_data() :
         return 
     
     try : 
-        ser = serial.Serial(port =stm32_port.name, baudrate=115200 , timeout=1)    
+        ser = serial.Serial(port =stm32_port.name, baudrate=230400 , timeout=1)    
         # print(f"Stm32 Connected to {stm32_port}") 
         ser.write(b"RUN")       #"Send RUN to STM32"
         print("Writing to STM.....")
@@ -93,11 +93,11 @@ def gather_data() :
         # take data according to a time frame we set 
         while time_diff <= TIME : 
             
-            data_received = ser.readline().decode("utf-8").strip()            
+            data_received = ser.readline().decode("utf-8").strip()          
             # if STM sent any data 
             if data_received : 
                 # if the data is Mean Value 
-                if "ADC Value = " in data_received:
+                if "= " in data_received:
                     print(data_received)
                     # print("DATA RECEIVED")
                     data = int(data_received.split('=')[1].strip())
@@ -111,57 +111,88 @@ def gather_data() :
         print("Error") 
         
     ser.write(b"STP")       #"Send RUN to STM32"
-             
+       
+def filter_data(adc_values) : 
+    
+    ret = [] 
+    
+    for i in adc_values : 
+        if i < NOISE_LEVEL : 
+            ret.append(0)
+            
+        else : 
+            ret.append(i)
+            
+    return ret 
+            
+              
 
 def get_freq(adc_values) :
-    valid_list = []
-    noise_region = 0 
-    
+   
     # adc_values = [120, 150, 90, 85, 200, 180, 50, 95, 250, 80, 30, 40]
     # If NOISE_LEVEL = 100:
     # 120, 150, 200, 180, 250 would be added to valid_list.
     # After encountering 50, 95, the noise_region would increase.
     # If the noise_region exceeds 4, the loop would break, ignoring the remaining values (80, 30, 40).
     
-    for idx in range (0,len(adc_values)) :     
-        if adc_values[idx] > NOISE_LEVEL and noise_region <= 4: 
-            valid_list.append(adc_values[idx])
-            noise_region = 0 
+    # for idx in range (0,len(adc_values)) :     
+    #     if adc_values[idx] > NOISE_LEVEL and noise_region <= 4: 
+    #         valid_list.append(adc_values[idx])
+    #         noise_region = 0 
             
-        elif noise_region > 4 : 
-            break 
+    #     elif noise_region > 4 : 
+    #         break 
         
-        else : 
-            noise_region += 1 
+    #     else : 
+    #         noise_region += 1 
             
     data_count = 0
+    last_idx = 0 
     peak = None 
     freq_list = []
-    for idx in range (len(valid_list)-1) : 
+    zero = 0 
+    
+    for idx in range (len(adc_values)-1) : 
         
         # if this is true 
         # means this is a peak 
         if idx > 0 : 
-            if (valid_list[idx] > valid_list[idx+1]) and (valid_list[idx] > valid_list[idx-1]) : 
+            if (adc_values[idx] > adc_values[idx+1]) and (adc_values[idx] > adc_values[idx-1]) : 
                 
                 # if data_count is 0 means this is the first peak 
-                if peak == None : 
-                    peak = valid_list[idx]
+                if peak == None and zero == 0 : 
+                    last_idx = idx
+                    peak = adc_values[idx]
                     data_count = 0 
-                    pass
+                    
+                    # print(idx)        
+                    # print(f"THIS IS THE First PEAK AT {adc_values[idx]}")    
                 
-                else : 
-                    peak = None 
+                elif zero == 0 : 
+                    # peak = None 
+                    data_count = idx - last_idx
+                    last_idx = idx 
+                    peak = adc_values[idx]
                     period = (TIME/SAMPLE_RATE) * data_count
                     freq = 1/period
+                    # print(idx)        
+                    # print(f"THIS IS THE PEAK AT {adc_values[idx]}")   
+                    # print(f"Freq: {freq}") 
                     freq_list.append(freq)
                     data_count = 0 
-            
-            # if not yet reach peak 
-            else :         
-                data_count += 1 
-            
-    return round(max(freq_list),2)
+                    
+                zero = adc_values[idx]
+                    
+            if adc_values[idx] == 0 : 
+                zero = 0 
+        
+                
+    if len(freq_list) == 0 :
+        return None    
+    
+    # print(f"Len {freq_list}")
+    # print(freq_list)
+    return round(sum(freq_list)/len(freq_list),2)
 
 def get_avgamp(list) :
     # input  : a list of raw data from stm  
@@ -178,48 +209,17 @@ def get_avgamp(list) :
             total += i
             count += 1
 
+    if count == 0 : 
+        return 0 
+    
     return total/count
 
-def highest_amp(adc_values, NOISE_LEVEL):
-    # Input : list of raw data, NOISE_LEVEL for noise
-    # output :  the highest amplitude from the list
-    spike_segments = []
-    max_spikes = []
-
-    i = 0
-    while i < len(adc_values):
-    # Wait for a value BELOW NOISE_LEVEL
-        if adc_values[i] < NOISE_LEVEL:
-            # Look ahead for rising edge
-            j = i + 1
-            while j < len(adc_values) and adc_values[j] < NOISE_LEVEL:
-                j += 1
-
-            # Found start of a spike
-            start = j
-
-            # Move forward until signal drops back below NOISE_LEVEL
-            while j < len(adc_values) and adc_values[j] >= NOISE_LEVEL:
-                j += 1
-
-            end = j
-
-            if end > start:
-                spike = adc_values[start:end]
-                spike_segments.append(spike)
-                max_spikes.append(np.max(spike))
-
-            i = j  # skip to next search
-        else:
-            i += 1
+def highest_amp(adc_values):
     
-    for idx, spike in enumerate(spike_segments):
-        print(f"Spike {idx+1}: values = {spike}, max = {max_spikes[idx]}")
-    
-    return max(max_spikes)
+    return max(adc_values)
 
 
-def visualize_data(list) : 
+def visualize_data(list,material,height,length) : 
     # input : a list of raw data from stm  
     # output : plot the graph to visualize the input
     x = []
@@ -228,17 +228,20 @@ def visualize_data(list) :
         x.append(i)
     
     plt.plot(x, list)
+    plt.scatter(x,list,color = 'red')
     plt.xlabel("Detection")
     plt.ylabel("Raw ADC Values")
-    
+    plt.title(f"{material},{height} ,{length} ")
+    plt.savefig(f"Project 2/plots/{material},{height},{length}.png")
     plt.show()
     # plot the raw data 
     
-def predict(freq, avg_amp):
+def predict(freq, avg_amp,amp):
     
     # if eraser  
     if freq < FREQ_THRESHOLD : 
         
+        print("Eraser")
         if avg_amp < ERASER_H_L_PARAM_10_30 : 
             print("ERASER: HEIGHT = 10 CM, LENGTH = 30 CM")
             
@@ -253,18 +256,31 @@ def predict(freq, avg_amp):
         
     # if coin 
     else : 
-        
-        if avg_amp < COIN_H_L_PARAM_10_30 : 
-            print("COIN: HEIGHT = 10 CM, LENGTH = 30 CM")
-            
-        elif avg_amp > COIN_H_L_PARAM_10_30 and avg_amp < COIN_H_L_PARAM_30_30: 
-            print("COIN: HEIGHT = 30 CM, LENGTH = 30 CM")
-            
-        elif avg_amp > COIN_H_L_PARAM_30_30 and avg_amp < COIN_H_L_PARAM_10_10: 
-            print("COIN: HEIGHT = 10 CM, LENGTH = 10 CM")
-            
-        elif avg_amp > COIN_H_L_PARAM_10_10 and avg_amp < COIN_H_L_PARAM_30_10: 
-            print("COIN: HEIGHT = 30 CM, LENGTH = 10 CM")
+        print("Coin")
+
+        # Safeguard: High amplitude around 4000 is very likely LENGTH = 10
+        if amp >= 3950:
+            if avg_amp > 145:
+                print("COIN: HEIGHT = 10 CM, LENGTH = 10 CM")
+            else:
+                print("COIN: HEIGHT = 30 CM, LENGTH = 10 CM")
+
+        # Lower amplitudes (under 3100) more likely LENGTH = 30
+        else:
+            if avg_amp < COIN_H_L_PARAM_10_30:
+                print("COIN: HEIGHT = 10 CM, LENGTH = 30 CM")
+                
+            elif avg_amp >= COIN_H_L_PARAM_10_30 and avg_amp < COIN_H_L_PARAM_30_30:
+                print("COIN: HEIGHT = 30 CM, LENGTH = 30 CM")
+                
+            elif avg_amp >= COIN_H_L_PARAM_30_30 and avg_amp < COIN_H_L_PARAM_10_10:
+                print("COIN: HEIGHT = 10 CM, LENGTH = 10 CM")
+                
+            elif avg_amp >= COIN_H_L_PARAM_10_10 and avg_amp < COIN_H_L_PARAM_30_10:
+                print("COIN: HEIGHT = 30 CM, LENGTH = 10 CM")
+
+            else:
+                print("COIN: UNKNOWN — out of trained range")
                  
 def main(): 
     print("START MENU")
@@ -278,30 +294,30 @@ def main():
             
             if mode == "1" : 
             
-                typeOfMaterial = input("Coin, Eraser, Others.")
-                height = input("10, 30, other")
+                typeOfMaterial = input("Coin, Eraser, Others ")
+                height = input("Height : ")
                 height = height + ' cm'
-                length = input("10, 30, other")
+                length = input("Length : ")
                 length = length + ' cm'    
                 
                 time.sleep(0.5)
                 
                 print("Start gathering in", end=" ", flush=True)
-                for i in range(3, 0, -1):
+                for i in range(1, 0, -1):
                     print(f"\rStart gathering in {i}", end="", flush=True)
                     time.sleep(1)
                       
                 data = gather_data()
-                
-                visualize_data(data)
-                
+                SAMPLE_RATE = len(data)
+                data = filter_data(data)
                 freq = get_freq(data)
                 avg_amp = get_avgamp(data)
                 max_amp = highest_amp(data)
+                visualize_data(data,typeOfMaterial,height,length)
                 
                 with open("Project 2/vibration.csv", 'a', newline='') as file:
                      writer = csv.writer(file)
-                     writer.writerow([typeOfMaterial,height,length,data,freq,avg_amp,max_amp])
+                     writer.writerow([typeOfMaterial,height,length,freq,avg_amp,max_amp])
                 
             elif mode == '2' : 
                 
@@ -309,11 +325,16 @@ def main():
                 for i in range(3, 0, -1):
                     print(f"\rStart gathering in {i}", end="", flush=True)
                     time.sleep(1)
-                    
+                
+                
                 data = gather_data()
+                SAMPLE_RATE = len(data)
+                data = filter_data(data)
                 freq = get_freq(data)
                 avg_amp = get_avgamp(data)
                 max_amp = highest_amp(data)
+                predict(freq,avg_amp,max_amp)
+                # visualize_data(data,"Pred","Pred","Pred")
                 
                 
                 
@@ -325,3 +346,4 @@ def main():
         
 if __name__ == "__main__":
     main()
+    
