@@ -14,23 +14,18 @@ SAMPLE_RATE = 5062
 SAMPLING_RATE = SAMPLE_RATE/TIME  # Number of samples / Time Period 
 
 # FREQUENCY THRESHOLD
-FREQ_THRESHOLD = 150 
+FREQ_THRESHOLD = 120 
 
 # ERASER PARAMETERS  
 # HEIGHT LENGTH   
-ERASER_H_L_PARAM_30_10 = 1 
-ERASER_H_L_PARAM_30_30 = 1 
-ERASER_H_L_PARAM_10_10 = 1 
-ERASER_H_L_PARAM_10_30 = 1 
+ERASER_HEIGHT_30 = 800
+ERASER_LENGTH_30 = 1700  
+ERASER_LENGTH_10 = 18 
 
 # COIN PARAMETERS 
 # HEIGHT LENGTH 
-COIN_H_L_PARAM_10_30 = 114
-COIN_H_L_PARAM_30_30 = 127
-COIN_H_L_PARAM_10_10 = 140
-COIN_H_L_PARAM_30_10 = 160
+COIN_HEIGHT_30 = 2000
 
-COIN_HEIGHT_30 = 2900
 PEAK_THRESHOLD = 1500 
 
 
@@ -239,36 +234,47 @@ def visualize_data(list,material,height,length) :
     plt.show()
     # plot the raw data 
     
-def predict(freq,amp,numOfPeaks,area):
+def predict(freq,avg_amp,amp,numOfPeaks,numPeakAbove): 
     
     # if eraser  
+    print(f"Freq {freq}")
+    ratio = amp/avg_amp
     if freq < FREQ_THRESHOLD : 
         
         print("Eraser")
-        # if avg_amp < ERASER_H_L_PARAM_10_30 : 
-        #     print("ERASER: HEIGHT = 10 CM, LENGTH = 30 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_10_30 and avg_amp < ERASER_H_L_PARAM_30_30: 
-        #     print("ERASER: HEIGHT = 30 CM, LENGTH = 30 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_30_30 and avg_amp < ERASER_H_L_PARAM_10_10: 
-        #     print("ERASER: HEIGHT = 10 CM, LENGTH = 10 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_10_10 and avg_amp < ERASER_H_L_PARAM_30_10: 
-        #     print("ERASER: HEIGHT = 30 CM, LENGTH = 10 CM")
         
+        if amp > ERASER_HEIGHT_30 : 
+            print(amp)
+            print("30 CM Height Drop")
+            
+            if amp < ERASER_LENGTH_30 : 
+                print("30 CM Length Drop")
+            
+            else : 
+                print("10 CM Length Drop")
+                
+        # 10 cm height       
+        else : 
+            print(amp)
+            print("10 CM Height Drop")
+            if ratio < ERASER_LENGTH_10 : 
+                print("30 CM Length Drop")
+                
+            else : 
+                print("10 CM Length Drop")
+                    
     # if coin 
     else : 
         print("Coin")
-        print(f"area {area}")
         print(f"numOfPeaks {numOfPeaks}")
+        print(f"numOfPeaks {numPeakAbove}")
         
         if amp > COIN_HEIGHT_30 : 
             print(amp)
             print("30 CM Height Drop")
-            print(f"AREA x Peak = {area*numOfPeaks}")
+
             
-            if area*numOfPeaks >= 5000000 : 
+            if numPeakAbove/numOfPeaks <= 0.4 : 
                 print("30 CM Length")
                 
             else :
@@ -278,12 +284,13 @@ def predict(freq,amp,numOfPeaks,area):
         else : 
             print(amp)
             print("10 CM Height Drop")
+            
+            if numPeakAbove/numOfPeaks <= 0.5 : 
+                print("30 CM Length")
+                
+            else :
+                print("10 CM Length")
         
-        
-        
-        
-        
-
         # # Safeguard: High amplitude around 4000 is very likely LENGTH = 10
         # if amp >= 3950:
         #     if avg_amp > 145:
@@ -308,40 +315,97 @@ def predict(freq,amp,numOfPeaks,area):
         #     else:
         #         print("COIN: UNKNOWN — out of trained range")
          
-def numOfPeaks(adc_values) :
+# def numOfPeaks(adc_values) :
 
-    peak = None 
-    zero = 0 
-    peak_counter = 0 
+#     peak = None 
+#     zero = 0 
+#     peak_counter = 0 
     
-    for idx in range (len(adc_values)-1) : 
+#     for idx in range (len(adc_values)-1) : 
         
-        # Ignore the first data         
-        if idx > 0 : 
-            # If this a peak 
-            if (adc_values[idx] > adc_values[idx+1]) and (adc_values[idx] > adc_values[idx-1]) : 
+#         # Ignore the first data         
+#         if idx > 0 : 
+#             # If this a peak 
+#             if (adc_values[idx] > adc_values[idx+1]) and (adc_values[idx] > adc_values[idx-1]) : 
                 
-                # if data_count is 0 means this is the first peak 
-                if peak == None and zero == 0 : 
-                    peak = adc_values[idx]
+#                 # if data_count is 0 means this is the first peak 
+#                 if peak == None and zero == 0 : 
+#                     peak = adc_values[idx]
                     
-                    if adc_values[idx] > PEAK_THRESHOLD : 
-                        peak_counter += 1 
+#                     if adc_values[idx] > PEAK_THRESHOLD : 
+#                         peak_counter += 1 
                     
-                # not the first peak 
-                elif zero == 0 : 
-                    peak = adc_values[idx]
+#                 # not the first peak 
+#                 elif zero == 0 : 
+#                     peak = adc_values[idx]
                     
-                    if adc_values[idx] > PEAK_THRESHOLD : 
-                        peak_counter += 1 
+#                     if adc_values[idx] > PEAK_THRESHOLD : 
+#                         peak_counter += 1 
                         
-                zero = adc_values[idx]
+#                 zero = adc_values[idx]
                     
-            if adc_values[idx] == 0 : 
-                zero = 0 
+#             if adc_values[idx] == 0 : 
+#                 zero = 0 
     
-    return peak_counter
- 
+#     print(f"Number of Peak {peak_counter}") 
+#     return peak_counter
+
+# def numOfPeaksAboveThreshold(adc_values,max_amp) :
+
+#     peak = None 
+#     zero = 0 
+#     peak_counter = 0 
+    
+#     for idx in range (len(adc_values)-1) : 
+        
+#         # Ignore the first data         
+#         if idx > 0 : 
+#             # If this a peak 
+#             if (adc_values[idx] > adc_values[idx+1]) and (adc_values[idx] > adc_values[idx-1]) : 
+                
+#                 # if data_count is 0 means this is the first peak 
+#                 if peak == None and zero == 0 : 
+#                     peak = adc_values[idx]
+                    
+#                     if adc_values[idx] > PEAK_THRESHOLD : 
+#                         if adc_values[idx] > max_amp/2 : 
+#                             peak_counter += 1 
+                    
+#                 # not the first peak 
+#                 elif zero == 0 : 
+#                     peak = adc_values[idx]
+                    
+#                     if adc_values[idx] > PEAK_THRESHOLD : 
+#                         if adc_values[idx] > max_amp/2 : 
+#                             peak_counter += 1 
+                        
+#                 zero = adc_values[idx]
+                    
+#             if adc_values[idx] == 0 : 
+#                 zero = 0 
+    
+#     print(f"Number of Peak Above Thres {peak_counter}") 
+#     return peak_counter
+def numOfPeaks(adc_values) :
+    non_zero_list = [x for x in adc_values if x != 0]
+    
+    print(f"NUM PEAKS {len(non_zero_list)}")
+    return len(non_zero_list)
+    
+    
+    
+def numOfPeaksAboveThreshold(adc_values,max_amp) :
+    non_zero_list = [x for x in adc_values if x != 0]
+    counter = 0 
+    
+    for i in non_zero_list : 
+        if i >= max_amp * 0.4 : 
+            counter += 1 
+    
+    print(f"NUM OF PEAKS ABOVE Thres:{max_amp*0.4} is {counter}") 
+    return counter 
+            
+
 def areaUnderGraph(adc_values): 
     x = np.arange(0,len(adc_values),1)
     
@@ -363,7 +427,7 @@ def p2p(adc_values) :
     for idx in range(1, len(adc_copy) - 1):
         
         # If less than 500 we ignore 
-        if adc_copy[idx] <= 500:
+        if adc_copy[idx] <= 400:
             counter += 1
             adc_copy[idx] = 0 
         else:
@@ -409,7 +473,7 @@ def diff_between_peaks(adc_values) :
         diff = abs(diff)
         diff_list.append(float(diff))
         
-    print(diff_list)
+    print(f"This is {diff_list}")
     return diff_list
     
 def time_between_peaks(adc_x) : 
@@ -425,8 +489,27 @@ def time_between_peaks(adc_x) :
         time_list.append(round(time_taken,2))
         
         
-    print(time_list)
+    print(f"This is {time_list}")
     return time_list
+
+def visualize_data2(list) : 
+    # input : a list of raw data from stm  
+    # output : plot the graph to visualize the input
+    x = []
+    
+    for i in range(0, len(list)):
+        x.append(i)
+    
+    plt.plot(x, list)
+    plt.scatter(x,list,color = 'red')
+    plt.xlabel("Detection")
+    plt.ylabel("Raw ADC Values")
+    plt.savefig(f"Project 2/plots/DATA.png")
+    plt.grid()
+    plt.ylim(-100,4100)
+    # plt.show()
+    # plot the raw data   
+
 
 def main(): 
     print("START MENU")
@@ -461,18 +544,28 @@ def main():
                 # avg_amp = get_avgamp(data)
                 max_amp = highest_amp(data)
                 
-                peaks = numOfPeaks(data)
+                # peaks = numOfPeaks(data)
+                # peak_Above_threshold = numOfPeaksAboveThreshold(data,max_amp)
                 area  = areaUnderGraph(data)
                 nonZero = nonZeroData(data)
             
                 # PEAKS 
                 pk = p2p(data)
+                print(pk)
                 pk_x, pk_y = filterPK(pk)
+                
+                peaks = numOfPeaks(pk_y)
+                peak_Above_threshold = numOfPeaksAboveThreshold(pk_y,max_amp)
+                
                 peak_amp = diff_between_peaks(pk_y)
                 peak_time = time_between_peaks(pk_x)
                 
                 
-                visualize_data(data,typeOfMaterial,height,length)
+                plt.subplot(2,1,1)
+                visualize_data2(data)
+                plt.subplot(2,1,2)
+                visualize_data2(pk)
+                plt.show()
                 
                 with open("Project 2/vibration.csv", 'a', newline='') as file:
                      writer = csv.writer(file)
@@ -481,7 +574,7 @@ def main():
             elif mode == '2' : 
                 
                 print("Start gathering in", end=" ", flush=True)
-                for i in range(3, 0, -1):
+                for i in range(1, 0, -1):
                     print(f"\rStart gathering in {i}", end="", flush=True)
                     time.sleep(1)
                 
@@ -489,20 +582,26 @@ def main():
                 data = gather_data()
                 data = filter_data(data)
                 freq = get_freq(data)
+                avg_amP = get_avgamp(data)
+                max_amp = highest_amp(data)
                 
-                peaks = numOfPeaks(data)
+                # peaks = numOfPeaks(data)
                 area  = areaUnderGraph(data)
                 nonZero = nonZeroData(data)
                 
                 # PEAKS 
                 pk = p2p(data)
                 pk_x, pk_y = filterPK(pk)
+                
+                peaks = numOfPeaks(pk_y)
+                peak_Above_threshold = numOfPeaksAboveThreshold(pk_y,max_amp)
+                
                 peak_amp = diff_between_peaks(pk_y)
                 peak_time = time_between_peaks(pk_x)
                 
                 # avg_amp = get_avgamp(data)
-                max_amp = highest_amp(data)
-                predict(freq,max_amp,peaks,area)
+                
+                predict(freq,avg_amP,max_amp,peaks,peak_Above_threshold)
                 # visualize_data(data,"Pred","Pred","Pred")
                      
         elif user == 'n' or user == 'N' :
