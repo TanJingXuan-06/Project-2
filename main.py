@@ -8,7 +8,7 @@ import numpy as np
 from scipy import integrate
 
 # SAMPLES PARAMETERS
-NOISE_LEVEL = 25        # to define the noise level 
+NOISE_LEVEL = 0        # to define the noise level 
 TIME = 4               # time to gather 1 data 
 SAMPLE_RATE = 5062
 SAMPLING_RATE = SAMPLE_RATE/TIME  # Number of samples / Time Period 
@@ -260,10 +260,13 @@ def predict(freq,amp,numOfPeaks,area):
     # if coin 
     else : 
         print("Coin")
+        print(f"area {area}")
+        print(f"numOfPeaks {numOfPeaks}")
         
         if amp > COIN_HEIGHT_30 : 
             print(amp)
             print("30 CM Height Drop")
+            print(f"AREA x Peak = {area*numOfPeaks}")
             
             if area*numOfPeaks >= 5000000 : 
                 print("30 CM Length")
@@ -304,25 +307,7 @@ def predict(freq,amp,numOfPeaks,area):
 
         #     else:
         #         print("COIN: UNKNOWN — out of trained range")
-    
-def visualize_data(list) : 
-    # input : a list of raw data from stm  
-    # output : plot the graph to visualize the input
-    x = []
-    
-    for i in range(0, len(list)):
-        x.append(i)
-    
-    plt.plot(x, list)
-    plt.scatter(x,list,color = 'red')
-    plt.xlabel("Detection")
-    plt.ylabel("Raw ADC Values")
-    # plt.savefig(f"Project 2/plots/DATA.png")
-    plt.grid()
-    plt.ylim(-100,4100)
-    # plt.show()
-    # plot the raw data  
-        
+         
 def numOfPeaks(adc_values) :
 
     peak = None 
@@ -491,7 +476,7 @@ def main():
                 
                 with open("Project 2/vibration.csv", 'a', newline='') as file:
                      writer = csv.writer(file)
-                     writer.writerow([typeOfMaterial,height,length,freq,max_amp])
+                     writer.writerow([typeOfMaterial,height,length,freq,max_amp,peaks,area,nonZero,peak_amp,peak_time,pk_y])
                 
             elif mode == '2' : 
                 
