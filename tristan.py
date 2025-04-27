@@ -154,7 +154,19 @@ def get_freq(adc_values) :
             
     return round(max(freq_list),2)
             
-    
+# # Perform FFT
+# n = len(adc_values)
+# fft_result = np.fft.fft(adc_values)
+# frequencies = np.fft.fftfreq(n, d=1/sampling_rate)
+
+# # Take magnitude and only keep the positive frequencies
+# magnitude = np.abs(fft_result)[:n//2]
+# frequencies = frequencies[:n//2]
+
+# # Find the dominant frequency (the frequency with the highest magnitude)
+# dominant_freq = frequencies[np.argmax(magnitude)]
+# print(f"Dominant Frequency: {dominant_freq} Hz")            
+
 def main(): 
 
     print("Start gathering in", end=" ", flush=True)

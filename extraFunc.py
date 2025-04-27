@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import csv 
 import numpy as np 
 from scipy import integrate
+import pandas as pd
+import matplotlib.pyplot as plt
+import ast
 
 # SAMPLES PARAMETERS
 NOISE_LEVEL = 25        # to define the noise level 
@@ -18,25 +21,17 @@ FREQ_THRESHOLD = 150
 
 # ERASER PARAMETERS  
 # HEIGHT LENGTH   
-ERASER_H_L_PARAM_30_10 = 1 
-ERASER_H_L_PARAM_30_30 = 1 
-ERASER_H_L_PARAM_10_10 = 1 
-ERASER_H_L_PARAM_10_30 = 1 
 
 # COIN PARAMETERS 
 # HEIGHT LENGTH 
-COIN_H_L_PARAM_10_30 = 114
-COIN_H_L_PARAM_30_30 = 127
-COIN_H_L_PARAM_10_10 = 140
-COIN_H_L_PARAM_30_10 = 160
 
 COIN_HEIGHT_30 = 2900
+
 PEAK_THRESHOLD = 1500 
 
 
 # the target string to determine if STM 32 is connected 
 STM32Name = "STMicroelectronics STLink Virtual COM Port"
-
 
 def check_STM32_connectivity():
     """ 
@@ -61,6 +56,7 @@ def check_STM32_connectivity():
             
         
     return -1 
+
 
 def gather_data() : 
     # input : input from user to get data 
@@ -108,7 +104,7 @@ def gather_data() :
                     
             end_time = time.time()
             time_diff = end_time - start_time
-            
+
         SAMPLE_RATE = len(data_list)
         return data_list
                  
@@ -197,114 +193,10 @@ def get_freq(adc_values) :
     # print(freq_list)
     return round(sum(freq_list)/len(freq_list),2)
 
-def get_avgamp(list) :
-    # input  : a list of raw data from stm  
-    # output : average of all spikes after NOISE_LEVEL
-    
-    # anything you find relavant to our project 
-    # only take highest amplitude ?
-    # take multiple highest ampltiude if there's different spikes ? 
-    total = 0
-    count = 0
-    
-    for i in list:
-        if (i > NOISE_LEVEL):
-            total += i
-            count += 1
-
-    if count == 0 : 
-        return 0 
-    
-    return total/count
-
 def highest_amp(adc_values):
     
     return max(adc_values)
 
-def visualize_data(list,material,height,length) : 
-    # input : a list of raw data from stm  
-    # output : plot the graph to visualize the input
-    x = []
-    
-    for i in range(0, len(list)):
-        x.append(i)
-    
-    plt.plot(x, list)
-    plt.scatter(x,list,color = 'red')
-    plt.xlabel("Detection")
-    plt.ylabel("Raw ADC Values")
-    plt.title(f"{material},{height} ,{length} ")
-    plt.savefig(f"Project 2/plots/{material},{height},{length}.png")
-    plt.grid()
-    plt.show()
-    # plot the raw data 
-    
-def predict(freq,amp,numOfPeaks,area):
-    
-    # if eraser  
-    if freq < FREQ_THRESHOLD : 
-        
-        print("Eraser")
-        # if avg_amp < ERASER_H_L_PARAM_10_30 : 
-        #     print("ERASER: HEIGHT = 10 CM, LENGTH = 30 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_10_30 and avg_amp < ERASER_H_L_PARAM_30_30: 
-        #     print("ERASER: HEIGHT = 30 CM, LENGTH = 30 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_30_30 and avg_amp < ERASER_H_L_PARAM_10_10: 
-        #     print("ERASER: HEIGHT = 10 CM, LENGTH = 10 CM")
-            
-        # elif avg_amp > ERASER_H_L_PARAM_10_10 and avg_amp < ERASER_H_L_PARAM_30_10: 
-        #     print("ERASER: HEIGHT = 30 CM, LENGTH = 10 CM")
-        
-    # if coin 
-    else : 
-        print("Coin")
-        
-        if amp > COIN_HEIGHT_30 : 
-            print(amp)
-            print("30 CM Height Drop")
-            
-            if area*numOfPeaks >= 5000000 : 
-                print("30 CM Length")
-                
-            else :
-                print("10 CM Length")
-        
-                            
-        else : 
-            print(amp)
-            print("10 CM Height Drop")
-        
-        
-        
-        
-        
-
-        # # Safeguard: High amplitude around 4000 is very likely LENGTH = 10
-        # if amp >= 3950:
-        #     if avg_amp > 145:
-        #         print("COIN: HEIGHT = 10 CM, LENGTH = 10 CM")
-        #     else:
-        #         print("COIN: HEIGHT = 30 CM, LENGTH = 10 CM")
-
-        # # Lower amplitudes (under 3100) more likely LENGTH = 30
-        # else:
-        #     if avg_amp < COIN_H_L_PARAM_10_30:
-        #         print("COIN: HEIGHT = 10 CM, LENGTH = 30 CM")
-                
-        #     elif avg_amp >= COIN_H_L_PARAM_10_30 and avg_amp < COIN_H_L_PARAM_30_30:
-        #         print("COIN: HEIGHT = 30 CM, LENGTH = 30 CM")
-                
-        #     elif avg_amp >= COIN_H_L_PARAM_30_30 and avg_amp < COIN_H_L_PARAM_10_10:
-        #         print("COIN: HEIGHT = 10 CM, LENGTH = 10 CM")
-                
-        #     elif avg_amp >= COIN_H_L_PARAM_10_10 and avg_amp < COIN_H_L_PARAM_30_10:
-        #         print("COIN: HEIGHT = 30 CM, LENGTH = 10 CM")
-
-        #     else:
-        #         print("COIN: UNKNOWN — out of trained range")
-    
 def visualize_data(list) : 
     # input : a list of raw data from stm  
     # output : plot the graph to visualize the input
@@ -321,8 +213,8 @@ def visualize_data(list) :
     plt.grid()
     plt.ylim(-100,4100)
     # plt.show()
-    # plot the raw data  
-        
+    # plot the raw data             
+
 def numOfPeaks(adc_values) :
 
     peak = None 
@@ -356,16 +248,16 @@ def numOfPeaks(adc_values) :
                 zero = 0 
     
     return peak_counter
- 
+
 def areaUnderGraph(adc_values): 
     x = np.arange(0,len(adc_values),1)
     
     return integrate.simpson(adc_values,x)
-     
+
 def nonZeroData(adc_values) : 
     
-    return np.count_nonzero(adc_values)     
-
+    return np.count_nonzero(adc_values)
+    
 def p2p(adc_values) :
 
     peakOld = 0 
@@ -406,7 +298,7 @@ def p2p(adc_values) :
         peakList[peak_idx] = peakOld         
                  
     return peakList
-
+   
 def filterPK(adc_values) : 
     
     nonzero_values = [value for value in adc_values if value != 0]
@@ -442,7 +334,67 @@ def time_between_peaks(adc_x) :
         
     print(time_list)
     return time_list
+  
+def visualize_param(csv1, csv2):
+    # Read the first CSV
+    df1 = pd.read_csv(csv1, header=None, names=['name', 'num_peaks', 'area', 'non_zero'])
 
+    # Read the second CSV
+    df2 = pd.read_csv(csv2, header=None, names=['name', 'peak_amp_diff', 'peak_time_diff'])
+
+    # Parse string representations of lists
+    df2['peak_amp_diff'] = df2['peak_amp_diff'].apply(lambda x: ast.literal_eval(str(x)))
+    df2['peak_time_diff'] = df2['peak_time_diff'].apply(lambda x: ast.literal_eval(str(x)))
+
+    # Compute max values from the lists
+    df2['max_peak_amp_diff'] = df2['peak_amp_diff'].apply(lambda x: max(x) if len(x) > 0 else 0)
+    df2['max_peak_time_diff'] = df2['peak_time_diff'].apply(lambda x: max(x) if len(x) > 0 else 0)
+
+    # Merge the two DataFrames on 'name'
+    df = pd.merge(df1, df2, on='name')
+
+    # Compute Effective Energy per Peak
+    df['energy_per_peak'] = df['area'] / (df['num_peaks'] + 1e-6)  # small epsilon to avoid division by zero
+
+    # Create a mapping from name to a numerical position
+    name_to_num = {name: idx for idx, name in enumerate(sorted(df['name'].unique()))}
+
+    # Create 6 subplots now
+    fig, axs = plt.subplots(6, 1, figsize=(16, 34))
+    fig.tight_layout(pad=5)
+
+    # Scatter plot helper
+    def scatter(ax, names, values, title, ylabel):
+        x_positions = [name_to_num[name] for name in names]
+        ax.scatter(x_positions, values, alpha=0.7)
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.set_xticks(list(name_to_num.values()))
+        ax.set_xticklabels(list(name_to_num.keys()), rotation=90)
+
+    # 1. Number of Peaks
+    scatter(axs[0], df['name'], df['num_peaks'], 'Number of Peaks', 'Num Peaks')
+
+    # 2. Area under the Curve
+    scatter(axs[1], df['name'], df['area'], 'Area under Curve', 'Area')
+
+    # 3. Number of Non-zero Points
+    scatter(axs[2], df['name'], df['non_zero'], 'Non-zero Points', 'Non-zero Count')
+
+    # 4. Max Peak Amplitude Difference per row
+    scatter(axs[3], df['name'], df['max_peak_amp_diff'], 'Max Peak Amplitude Difference', 'Max Amp Diff')
+
+    # 5. Max Peak Time Difference per row
+    scatter(axs[4], df['name'], df['max_peak_time_diff'], 'Max Peak Time Difference', 'Max Time Diff')
+
+    # 6. Effective Energy per Peak
+    scatter(axs[5], df['name'], df['energy_per_peak'], 'Effective Energy per Peak', 'Energy per Peak')
+
+    plt.show()
+
+
+
+  
 def main(): 
     print("START MENU")
     
@@ -451,81 +403,59 @@ def main():
         
         if user == 'y' or user == 'Y' :
             
-            mode = input("1: Data Collection\n2: Prediction ")
+            time.sleep(0.5)
+            user = input("3010, 3030, 1030, 1010: \n")
+            print("Start gathering in", end=" ", flush=True)
+            for i in range(1, 0, -1):
+                print(f"\rStart gathering in {i}", end="", flush=True)
+                time.sleep(1)
+                    
+            data = gather_data()   
             
-            if mode == "1" : 
+            data = filter_data(data)
             
-                typeOfMaterial = input("Coin, Eraser, Others ")
-                height = typeOfMaterial[2:4]
-                height = height + ' cm'
-                length = typeOfMaterial[4:6]
-                length = length + ' cm'    
-                typeOfMaterial = typeOfMaterial[0:2]
-                
-                time.sleep(0.5)
-                
-                print("Start gathering in", end=" ", flush=True)
-                for i in range(1, 0, -1):
-                    print(f"\rStart gathering in {i}", end="", flush=True)
-                    time.sleep(1)
-                      
-                data = gather_data()
-                SAMPLE_RATE = len(data)
-                data = filter_data(data)
-                freq = get_freq(data)
-                # avg_amp = get_avgamp(data)
-                max_amp = highest_amp(data)
-                
-                peaks = numOfPeaks(data)
-                area  = areaUnderGraph(data)
-                nonZero = nonZeroData(data)
             
-                # PEAKS 
-                pk = p2p(data)
-                pk_x, pk_y = filterPK(pk)
-                peak_amp = diff_between_peaks(pk_y)
-                peak_time = time_between_peaks(pk_x)
+            
+            peaks = numOfPeaks(data)
+            area  = areaUnderGraph(data)
+            nonZero = nonZeroData(data)
+            
+            # PEAKS 
+            pk = p2p(data)
+            pk_x, pk_y = filterPK(pk)
+            peak_amp = diff_between_peaks(pk_y)
+            peak_time = time_between_peaks(pk_x)
+            
+            plt.subplot(2,1,1)
+            visualize_data(data)
+            plt.subplot(2,1,2)
+            visualize_data(pk)
+            plt.show()
+            
+            
+            with open("Project 2/test1.csv", 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([user,peaks,area,nonZero])
                 
+            with open("Project 2/test2.csv", 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([user,peak_amp,peak_time])
+            
+
                 
-                visualize_data(data,typeOfMaterial,height,length)
-                
-                with open("Project 2/vibration.csv", 'a', newline='') as file:
-                     writer = csv.writer(file)
-                     writer.writerow([typeOfMaterial,height,length,freq,max_amp])
-                
-            elif mode == '2' : 
-                
-                print("Start gathering in", end=" ", flush=True)
-                for i in range(3, 0, -1):
-                    print(f"\rStart gathering in {i}", end="", flush=True)
-                    time.sleep(1)
-                
-                
-                data = gather_data()
-                data = filter_data(data)
-                freq = get_freq(data)
-                
-                peaks = numOfPeaks(data)
-                area  = areaUnderGraph(data)
-                nonZero = nonZeroData(data)
-                
-                # PEAKS 
-                pk = p2p(data)
-                pk_x, pk_y = filterPK(pk)
-                peak_amp = diff_between_peaks(pk_y)
-                peak_time = time_between_peaks(pk_x)
-                
-                # avg_amp = get_avgamp(data)
-                max_amp = highest_amp(data)
-                predict(freq,max_amp,peaks,area)
-                # visualize_data(data,"Pred","Pred","Pred")
-                     
         elif user == 'n' or user == 'N' :
             break 
     else : 
         return None 
         
         
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+def test() : 
+    visualize_param("Project 2/test1.csv","Project 2/test2.csv")
+    
+
+test()
+
     
