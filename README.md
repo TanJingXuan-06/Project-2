@@ -10,7 +10,7 @@
 ---
 
 ## 📘 TRC3500 Project 2 Breathe Detection Description
-This project presents a compact, cost-effective vibration sensing system designed to reliably detect and timestamp breath per minute (BPM) 
+This project presents a compact, cost-effective pressure and band resisting sensing system designed to reliably detect and timestamp breath per minute (BPM) 
 
 ## 🎯 Objectives
 The main objective of this project is predict a BPM from the user 
