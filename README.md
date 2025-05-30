@@ -9,18 +9,13 @@
 | Derrick Chin Chee Lik  | 32837437 | dchi0029@student.monash.edu |
 ---
 
-## 📘 TRC3500 Project 2 Pin Drop Detection Project Description
-This project presents a compact, cost-effective vibration sensing system designed to reliably detect and timestamp low-amplitude, sudden-onset vibration events. Instead of generic impacts like a pin drop, this system is tuned and tested to detect the impact of a 50 sen coin and a standard eraser dropped from four different height–distance combinations.
+## 📘 TRC3500 Project 2 Breathe Detection Description
+This project presents a compact, cost-effective vibration sensing system designed to reliably detect and timestamp breath per minute (BPM) 
 
 ## 🎯 Objectives
-The main objective of this project is to differentiate a coin drop and an eraser drop from : 
-1. Length = 10CM, Height = 10CM
-2. Length = 10CM, Height = 30CM
-3. Length = 30CM, Height = 10CM
-4. Length = 30CM, Height = 30CM
+The main objective of this project is predict a BPM from the user 
 
 ## 🔧 Project Setup & Execution
 1. Run and download the STM code to an STM
 2. Run the code: main.py
-3. Depending on the user, select eiter Data Collection mode, Detection mode or Eraser Detection mode (furthest)
-4. To detect a softer material than an eraser, use the extraMain.py file. 
+3. Observe the plots and the estimate BPM is printed on the terminal
